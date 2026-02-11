@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>給媽媽的每日驚喜</title>
+    <!-- 引入 Google Fonts 讓字體好看一點 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #fdf6e3;
+            --card-bg: #fff;
+            --primary-color: #d68086; /* 溫暖的豆沙紅 */
+            --text-color: #5d5d5d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: 'Noto Serif TC', serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-color);
+            overflow: hidden; /* 防止捲動 */
+        }
+
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+            letter-spacing: 2px;
+        }
+
+        p.date {
+            font-size: 0.9rem;
+            color: #999;
+            margin-bottom: 2rem;
+        }
+
+        /* 拍立得相框樣式 */
+        .polaroid-wrapper {
+            perspective: 1000px; /* 3D 效果視角 */
+            cursor: pointer;
+            width: 100%;
+            height: 450px; /* 固定高度保持版面穩定 */
+            position: relative;
+        }
+
+        .polaroid-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        /* 翻轉效果 class */
+        .polaroid-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            background-color: var(--card-bg);
+            padding: 15px 15px 60px 15px; /* 底部留白給文字 */
+            box-sizing: border-box;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 正面 (還沒翻開時) */
+        .card-front {
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card-front h2 {
+            font-size: 2rem;
+            margin: 0;
+        }
+        
+        .card-front span {
+            font-size: 3rem;
+            margin-top: 10px;
+        }
+
+        .tap-hint {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* 背面 (翻開後) */
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        .photo-container {
+            width: 100%;
+            height: 100%;
+            background-color: #eee;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .caption {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-family: 'Bradley Hand', 'cwTeXYen', cursive; /* 手寫風格字體 */
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Daily Moment</h1>
+        <p class="date" id="display-date">Loading date...</p>
+
+        <div class="polaroid-wrapper" onclick="flipCard()">
+            <div class="polaroid-inner" id="card">
+                <!-- 正面：禮物包裝 -->
+                <div class="card-face card-front">
+                    <h2>給媽媽</h2>
+                    <span>🎁</span>
+                    <div class="tap-hint">點擊打開今天的照片</div>
+                </div>
+
+                <!-- 背面：照片 -->
+                <div class="card-face card-back">
+                    <div class="photo-container">
+                        <img id="daily-photo" src="" alt="每日照片" onload="photoLoaded()" onerror="photoError()">
+                    </div>
+                    <div class="caption" id="photo-caption">
+                        Thinking of you from Taipei ❤️
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function init() {
+            const today = new Date();
+            
+            // 1. 設定顯示的日期文字
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById('display-date').textContent = today.toLocaleDateString('zh-TW', options);
+
+            // 2. 格式化日期為 YYYY-MM-DD 以便抓取照片
+            // 注意：要處理時區問題，這裡簡單使用本地時間
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+
+            // 3. 設定圖片路徑
+            // 我們假設照片放在 images 資料夾，並且命名為 YYYY-MM-DD.jpg
+            const photoPath = `images/${dateString}.jpg`;
+            
+            // 加上時間戳記防止手機瀏覽器快取舊照片 (?v=...)
+            const img = document.getElementById('daily-photo');
+            img.src = `${photoPath}?v=${new Date().getTime()}`;
+            
+            // 預設標題
+            document.getElementById('photo-caption').innerText = `${dateString} 的生活紀錄`;
+        }
+
+        // 翻轉卡片效果
+        function flipCard() {
+            document.getElementById('card').classList.toggle('flipped');
+        }
+
+        // 圖片載入成功
+        function photoLoaded() {
+            console.log("Photo loaded successfully!");
+        }
+
+        // 圖片載入失敗 (代表今天還沒上傳，或是檔名錯誤)
+        function photoError() {
+            console.log("No photo found for today, showing default.");
+            const img = document.getElementById('daily-photo');
+            // 如果當天照片找不到，顯示預設圖
+            // 確保你有放一張 default.jpg 在 images 資料夾
+            img.src = 'images/default.jpg'; 
+            document.getElementById('photo-caption').innerText = "還沒放喔!";
+            
+            // 防止 default.jpg 也找不到造成無限迴圈
+            img.onerror = null; 
+        }
+
+        // 啟動程式
+        init();
+    </script>
+</body>
+</html>
